@@ -1,0 +1,115 @@
+<html>
+  <head>
+    <script src="node_modules/@ffmpeg/ffmpeg/dist/ffmpeg.min.js"></script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+    </style>
+  </head>
+  <body>
+    <h3></h3>
+    <br />
+    <a id="down" href="" download hidden>Download</a>
+    <button id="start-btn">Start</button>
+    <video id="output-video" controls autoplay hidden></video>
+    <img id="image" />
+    <p id="message"></p>
+    <script>
+      const { createFFmpeg, fetchFile } = FFmpeg;
+      const ffmpeg = createFFmpeg({ log: true });
+
+      const image2video = async () => {
+        const message = document.getElementById("message");
+        message.innerHTML = "Loading ffmpeg-core.js";
+        await ffmpeg.load();
+        message.innerHTML = "Loading data";
+        // ffmpeg.FS(
+        //   "writeFile",
+        //   "audio.ogg",
+        //   await fetchFile("../assets/triangle/audio.ogg")
+        // );
+        var startTime = performance.now();
+        for (let i = 1; i < 2; i += 1) {
+          const num = `gray${i}`;
+          ffmpeg.FS(
+            "writeFile",
+            `tmp${num}.png`,
+            await fetchFile(`./${num}.png`)
+          );
+        }
+        message.innerHTML = "Start transcoding";
+        await ffmpeg.run(
+          "-framerate",
+          "0.1",
+          "-pattern_type",
+          "glob",
+          "-i",
+          "*.png",
+          "-tag:v",
+          "avc1",
+          "-c:v",
+          "libx264",
+          "-profile:v",
+          "high10",
+          "-qp",
+          "1",
+          // "-sws_flags",
+          // "spline+accurate_rnd+full_chroma_int",
+          "-color_trc",
+          "smpte2084",
+          "-color_primaries",
+          "bt2020",
+          "-color_range",
+          "pc",
+          "-colorspace",
+          "bt2020nc",
+          "-pix_fmt",
+          "yuv420p10le",
+          // "-vf",
+          // "eq=brightness=0.12",
+          "out.mp4"
+        );
+        //
+        //"repeat-headers=1:colorprim=bt2020:transfer=smpte2084",
+        //transfer=smpte2084:master-display=G(15000,30000)B(75000,3000)R(32000,1650)WP(15635,16450)L(10000000,1)
+        const data = ffmpeg.FS("readFile", "out.mp4");
+        // ffmpeg.FS("unlink", "audio.ogg");
+        const da = ffmpeg.FS("readFile", "tmpgray1.png");
+        document.getElementById("image").src = URL.createObjectURL(
+          new Blob([da.buffer], { type: "image/png" })
+        );
+        for (let i = 1; i < 2; i += 1) {
+          const num = `gray${i}`;
+          ffmpeg.FS("unlink", `tmp${num}.png`);
+        }
+        console.log(data.buffer);
+        const video = document.getElementById("output-video");
+        const down = document.getElementById("down");
+        video.hidden = false;
+        video.src = URL.createObjectURL(
+          new Blob([data.buffer], { type: "video/mp4" })
+        );
+        down.hidden = false;
+        down.href = URL.createObjectURL(
+          new Blob([data.buffer], { type: "video/mp4" })
+        );
+        console.log(down.href);
+        var endTime = performance.now();
+        console.log(
+          `Call to doSomething took ${endTime - startTime} milliseconds`
+        );
+      };
+      const elm = document.getElementById("start-btn");
+      elm.addEventListener("click", image2video);
+    </script>
+  </body>
+</html>

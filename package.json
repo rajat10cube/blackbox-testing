@@ -1,0 +1,19 @@
+{
+  "name": "img2vid",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@ffmpeg/core": "^0.10.0",
+    "@ffmpeg/ffmpeg": "^0.10.1",
+    "cors": "^2.8.5",
+    "express": "^4.17.3",
+    "remote-calibrator": "^0.6.0"
+  }
+}

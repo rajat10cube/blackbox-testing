@@ -1,0 +1,171 @@
+<html>
+
+<head>
+  <script src="node_modules/@ffmpeg/ffmpeg/dist/ffmpeg.min.js"></script>
+  <style>
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/remote-calibrator@latest"></script>
+</head>
+
+<body>
+  <h3></h3>
+  <br />
+  <a id="down" href="" download hidden>Download</a>
+  <button id="start-btn">Start</button>
+  <video id="output-video" controls autoplay loop hidden></video>
+  <img id="image" hidden />
+  <p id="message"></p>
+  <script>
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ log: true });
+
+    RemoteCalibrator.init({ id: "session_022" });
+    const browser = RemoteCalibrator.browser.value;
+
+    //video/mp4; codecs="hvc1"
+
+    // var ext = gl.getExtension("WEBGL_compressed_texture_astc");
+    // ext.getSupportedProfiles();
+
+    // var obj = document.createElement("video");
+    // console.log(
+    //   "Is video/hevc supported ? : ",
+    //   obj.canPlayType('video/mp4; codecs="hvc1"')
+    // ); // "maybe"
+    const isHVC1Supported = MediaSource.isTypeSupported(
+      'video/mp4; codecs="hvc1"'
+    );
+    const isAVC1Supported = MediaSource.isTypeSupported(
+      'video/mp4; codecs="avc1.6e0033"'
+    );
+    console.log(isAVC1Supported);
+
+    const image2video = async () => {
+      const message = document.getElementById("message");
+      message.innerHTML = "Loading ffmpeg-core.js";
+      await ffmpeg.load();
+      message.innerHTML = "Loading data";
+      var startTime = performance.now();
+      for (let i = 0; i < 300; i += 1) {
+        if (i < 10) {
+          var num = `newfile00${i}`;
+        }
+        else if (i < 100) {
+          var num = `newfile0${i}`;
+        }
+        else {
+          var num = `newfile${i}`;
+        }
+        ffmpeg.FS(
+          "writeFile",
+          `tmp${num}.png`,
+          await fetchFile(`./Lines/${num}.png`)
+        );
+      }
+      if (isHVC1Supported == true) {
+        message.innerHTML =
+          "Started transcoding for H.265 because Safari does not support 10 bit H.264 encoding";
+        await ffmpeg.run(
+          "-pattern_type",
+          "glob",
+          "-framerate",
+          "60",
+          "-i",
+          "*.png",
+          "-tag:v",
+          "hvc1",
+          "-c:v",
+          "libx265",
+          "-color_range",
+          "tv",
+          "-color_trc",
+          "linear",
+          "-color_primaries",
+          "bt2020",
+          "-colorspace",
+          "bt2020nc",
+          "-pix_fmt",
+          "yuv444p10le",
+          "out.mp4"
+        );
+      } else if (isAVC1Supported == true) {
+        message.innerHTML =
+          "Started transcoding for H.264 because chrome does not support H.265 encoding";
+        await ffmpeg.run(
+          "-pattern_type",
+          "glob",
+          "-framerate",
+          "60",
+          "-i",
+          "*.png",
+          "-tag:v",
+          "avc1",
+          "-c:v",
+          "libx264",
+          "-qp",
+          "0",
+          "-color_range",
+          "tv",
+          "-color_trc",
+          "linear",
+          "-color_primaries",
+          "bt2020",
+          "-colorspace",
+          "bt2020nc",
+          "-pix_fmt",
+          "yuv444p10le",
+          "out.mp4"
+        );
+      } else {
+        message.innerHTML =
+          "Both hvc1 and avc1.6e0033 codecs not supported by your browser";
+      }
+
+      const data = ffmpeg.FS("readFile", "out.mp4");
+      for (let i = 0; i < 300; i += 1) {
+        if (i < 10) {
+          var num = `newfile00${i}`;
+        }
+        else if (i < 100) {
+          var num = `newfile0${i}`;
+        }
+        else {
+          var num = `newfile${i}`;
+        }
+        ffmpeg.FS("unlink", `tmp${num}.png`);
+      }
+      console.log(data.buffer);
+      const video = document.getElementById("output-video");
+      const down = document.getElementById("down");
+      video.hidden = false;
+      video.src = URL.createObjectURL(
+        new Blob([data.buffer], { type: "video/mp4" })
+      );
+      down.hidden = false;
+      down.href = URL.createObjectURL(
+        new Blob([data.buffer], { type: "video/mp4" })
+      );
+      console.log(down.href);
+      var endTime = performance.now();
+      console.log(
+        `Call to doSomething took ${endTime - startTime} milliseconds`
+      );
+    };
+    const elm = document.getElementById("start-btn");
+    elm.addEventListener("click", image2video);
+  </script>
+</body>
+
+</html>
